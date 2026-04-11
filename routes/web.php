@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -9,9 +10,9 @@ Route::get('/', function () {
 
 // 認証が必要なルート
 Route::middleware('auth')->group(function () {
-    // カテゴリーのCRUDルート（仮ルートから置き換え）
+    // カテゴリーのCRUDルート
     Route::resource('categories', CategoryController::class);
 
-    // タスクの仮ルート（次のセクションで本実装に置き換え）
-    Route::get('/tasks', fn() => 'タスク一覧（準備中）')->name('tasks.index');
+    // タスクのCRUDルート（仮ルートから置き換え）
+    Route::resource('tasks', TaskController::class);
 });
