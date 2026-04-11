@@ -11,7 +11,7 @@ class TaskRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -22,7 +22,10 @@ class TaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'title' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id', // ここで「categories」テーブルがあるかチェックしている
+            'priority' => 'required|integer|in:1,2,3',
+            'description' => 'nullable|string',
         ];
     }
 }
