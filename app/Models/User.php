@@ -21,6 +21,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'google_access_token',    // ★追加
+        'google_refresh_token',   // ★追加
+        'google_token_expires_at',// ★追加
     ];
 
     /**
