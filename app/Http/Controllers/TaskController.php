@@ -13,10 +13,11 @@ class TaskController extends Controller
      */
     public function index()
     {
-        $tasks = auth()->user()->tasks()
-            ->with('category')
-            ->orderBy('priority', 'desc')
-            ->orderBy('created_at', 'desc')
+        $tasks = Task::where('user_id', auth()->id())
+            ->orderByRaw('is_completed ASC')    // 1. 未完了を上に、完了済みを下に
+            ->orderByRaw('due_date IS NULL ASC') // 2. 期限があるものを上に
+            ->orderBy('due_date', 'asc')         // 3. 期限が近い順
+            ->orderBy('priority', 'desc')        // 4. 同じ期限なら優先度が高い順
             ->get();
 
         return view('tasks.index', compact('tasks'));

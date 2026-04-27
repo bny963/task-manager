@@ -22,6 +22,7 @@ class Task extends Model
         'description',
         'priority',
         'is_completed',
+        'due_date',
     ];
 
     /**
@@ -51,4 +52,7 @@ class Task extends Model
             default => '高',
         };
     }
+    protected $casts = [
+        'due_date' => 'date',
+    ];
 }

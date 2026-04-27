@@ -23,6 +23,7 @@ class TaskRequest extends FormRequest
     {
         return [
             'title' => 'required|string|max:255',
+            'due_date' => 'nullable|date',
             'category_id' => 'required|exists:categories,id', // ここで「categories」テーブルがあるかチェックしている
             'priority' => 'required|integer|in:1,2,3',
             'description' => 'nullable|string',
