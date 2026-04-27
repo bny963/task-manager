@@ -15,4 +15,5 @@ Route::middleware('auth')->group(function () {
 
     // タスクのCRUDルート（仮ルートから置き換え）
     Route::resource('tasks', TaskController::class);
+    Route::patch('/tasks/{task}/toggle', [TaskController::class, 'toggle'])->name('tasks.toggle');
 });
