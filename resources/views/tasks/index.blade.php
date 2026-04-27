@@ -1,5 +1,27 @@
 <x-app-layout>
     <x-slot name="title">タスク一覧</x-slot>
+    
+    <div class="bg-white rounded-lg shadow-md p-6">
+        {{-- ヘッダー --}}
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">タスク一覧</h1>
+            <a href="{{ route('tasks.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                新規登録
+            </a>
+        </div>
+        
+        {{-- タスクリスト --}}
+@forelse($tasks as $task)
+                <div class="border-b border-gray-200 py-4 last:border-b-0">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-start">
+                            {{-- チェックボックス --}}
+                            <form action="{{ route('tasks.toggle', $task) }}" method="POST" class="mr-3 mt-1">
+                                @csrf
+                                @method('PATCH')
+                                <input type="checkbox" onChange="this.form.submit()" {{ $task->is_completed ? 'checked' : '' }}
+                                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
+                            </form>
 
     {{-- ページ全体の背景色を微調整し、全体を囲う --}}
     <div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -126,8 +148,9 @@
                         <p class="text-gray-400 font-bold text-lg">タスクがありません</p>
                         <a href="{{ route('tasks.create') }}" class="mt-4 text-blue-500 font-bold hover:underline">新しいタスクを追加する</a>
                     </div>
-                @endforelse
-            </div>
-        </div>
+                </div>
+@empty
+    <p class="text-center text-gray-500 py-8">タスクがありません。</p>
+@endforelse
     </div>
 </x-app-layout>
