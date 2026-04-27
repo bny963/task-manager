@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TaskRequest;
 use App\Models\Category;
+use Illuminate\Http\Request;
 use App\Models\Task;
+use App\Services\GoogleCalendarService;
 
 class TaskController extends Controller
 {
@@ -36,17 +38,33 @@ class TaskController extends Controller
     /**
      * タスクを新規作成
      */
-    public function store(TaskRequest $request)
+    public function store(Request $request, GoogleCalendarService $calendarService)
     {
-        $validated = $request->validated();
-        $validated['user_id'] = auth()->id();
+        // 1. バリデーションを実行（ここが抜けていました）
+        $validated = $request->validate([
+            'title' => 'required|max:255',
+            'description' => 'nullable',
+            'due_date' => 'nullable|date',
+            'category_id' => 'required|exists:categories,id',
+            'priority' => 'required|integer|min:1|max:3',
+        ]);
 
-        Task::create($validated);
+        // 2. $validated を使って作成
+        $task = auth()->user()->tasks()->create($validated);
 
-        return redirect()->route('tasks.index')
-            ->with('success', 'タスクを作成しました。');
+        // 3. デバッグ用のログ出し
+        $hasToken = !empty(auth()->user()->google_access_token);
+        $hasDueDate = !empty($task->due_date);
+
+        if ($hasToken && $hasDueDate) {
+            $calendarService->createEvent($task);
+        } else {
+            $reason = "トークン: " . ($hasToken ? 'OK' : 'なし') . " / 期限: " . ($hasDueDate ? 'OK' : 'なし');
+            return redirect()->route('tasks.index')->with('error', '同期スキップされました。理由: ' . $reason);
+        }
+
+        return redirect()->route('tasks.index')->with('success', 'タスクを作成しました！');
     }
-
     /**
      * タスク詳細を表示
      */
@@ -76,25 +94,47 @@ class TaskController extends Controller
     /**
      * タスクを更新
      */
-    public function update(TaskRequest $request, Task $task)
+    public function update(TaskRequest $request, Task $task, GoogleCalendarService $calendarService)
     {
-        // Policyによる認可チェック
         $this->authorize('update', $task);
 
+        // 1. まずDBの値を最新にする
         $task->update($request->validated());
 
+        // 2. 更新後の値を使ってカレンダー同期
+        if (auth()->user()->google_access_token && $task->due_date) {
+            $calendarService->updateEvent($task);
+        }
+
         return redirect()->route('tasks.index')
-            ->with('success', 'タスクを更新しました。');
+            ->with('success', 'タスクを更新し、カレンダーにも反映しました。');
     }
 
     /**
      * タスクを削除
      */
-    public function destroy(Task $task)
+    public function destroy(Task $task, GoogleCalendarService $calendarService)
     {
-        // Policyによる認可チェック
         $this->authorize('delete', $task);
 
+        // デバッグログ: ここが実行されているか確認
+        \Log::info('Destroy method called for Task ID: ' . $task->id);
+
+        $user = auth()->user();
+
+        // 条件判定を一つずつチェック
+        if ($user->google_access_token) {
+            if ($task->google_calendar_event_id) {
+                \Log::info('Attempting to delete Google Event ID: ' . $task->google_calendar_event_id);
+                $calendarService->deleteEvent($task);
+            } else {
+                \Log::warning('Task has no Google Event ID. Skipping Google delete.');
+            }
+        } else {
+            \Log::warning('User has no Google Access Token. Skipping Google delete.');
+        }
+
+        // 最後にDBから削除
         $task->delete();
 
         return redirect()->route('tasks.index')

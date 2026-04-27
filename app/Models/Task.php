@@ -23,6 +23,7 @@ class Task extends Model
         'priority',
         'is_completed',
         'due_date',
+        'google_calendar_event_id',
     ];
 
     /**

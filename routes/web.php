@@ -3,7 +3,10 @@
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\GoogleCalendarController;
 
+Route::get('/login/google', [GoogleCalendarController::class, 'redirectToGoogle'])->name('google.login');
+Route::get('/login/google/callback', [GoogleCalendarController::class, 'handleGoogleCallback']);
 Route::get('/', function () {
     return redirect()->route('login');
 });

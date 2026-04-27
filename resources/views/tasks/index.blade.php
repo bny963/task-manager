@@ -19,7 +19,14 @@
                     新規タスク
                 </a>
             </div>
-
+@if(!auth()->user()->google_access_token)
+    <a href="{{ route('google.login') }}"
+        class="text-xs bg-white border border-gray-300 px-3 py-1 rounded-lg hover:bg-gray-50 transition-colors font-bold text-gray-600">
+        Googleカレンダーと連携
+    </a>
+@else
+    <span class="text-xs text-green-600 font-bold">● Googleカレンダー連携済み</span>
+@endif
             {{-- カードグリッド --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 @forelse($tasks as $task)
