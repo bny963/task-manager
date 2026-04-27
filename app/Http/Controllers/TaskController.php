@@ -99,4 +99,13 @@ class TaskController extends Controller
         return redirect()->route('tasks.index')
             ->with('success', 'タスクを削除しました。');
     }
+    public function toggle(Task $task)
+    {
+        // 現在の値を反転させる (! を使うと true ↔ false が入れ替わります)
+        $task->update([
+            'is_completed' => !$task->is_completed,
+        ]);
+
+        return back()->with('success', 'タスクのステータスを更新しました。');
+    }
 }
