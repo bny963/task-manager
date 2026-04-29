@@ -13,16 +13,22 @@ class TaskController extends Controller
     /**
      * タスク一覧を表示
      */
-    public function index()
+    public function index(GoogleCalendarService $calendarService)
     {
+        // 1. 既存のタスク取得ロジック（並び順維持）
         $tasks = Task::where('user_id', auth()->id())
-            ->orderByRaw('is_completed ASC')    // 1. 未完了を上に、完了済みを下に
-            ->orderByRaw('due_date IS NULL ASC') // 2. 期限があるものを上に
-            ->orderBy('due_date', 'asc')         // 3. 期限が近い順
-            ->orderBy('priority', 'desc')        // 4. 同じ期限なら優先度が高い順
+            ->orderByRaw('is_completed ASC')     // 未完了を上
+            ->orderByRaw('due_date IS NULL ASC') // 期限ありを上
+            ->orderBy('due_date', 'asc')         // 期限が近い順
+            ->orderBy('priority', 'desc')        // 優先度高い順
             ->get();
 
-        return view('tasks.index', compact('tasks'));
+        // 2. Googleカレンダーから整形済みデータを取得
+        // ※Service側で getEventsForFullCalendar() メソッドを作成している前提
+        $googleEvents = $calendarService->getEventsForFullCalendar();
+
+        // 3. 両方のデータをViewへ渡す
+        return view('tasks.index', compact('tasks', 'googleEvents'));
     }
 
     /**
