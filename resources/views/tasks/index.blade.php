@@ -1,156 +1,158 @@
 <x-app-layout>
     <x-slot name="title">タスク一覧</x-slot>
-    
-    <div class="bg-white rounded-lg shadow-md p-6">
-        {{-- ヘッダー --}}
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">タスク一覧</h1>
-            <a href="{{ route('tasks.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                新規登録
-            </a>
-        </div>
-        
-        {{-- タスクリスト --}}
-@forelse($tasks as $task)
-                <div class="border-b border-gray-200 py-4 last:border-b-0">
-                    <div class="flex justify-between items-start">
-                        <div class="flex items-start">
-                            {{-- チェックボックス --}}
-                            <form action="{{ route('tasks.toggle', $task) }}" method="POST" class="mr-3 mt-1">
-                                @csrf
-                                @method('PATCH')
-                                <input type="checkbox" onChange="this.form.submit()" {{ $task->is_completed ? 'checked' : '' }}
-                                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
-                            </form>
 
-    {{-- ページ全体の背景色を微調整し、全体を囲う --}}
-    <div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto">
-            
-            {{-- ヘッダー部分 --}}
-            <div class="flex justify-between items-end mb-10">
+    <div id="full-width-container" class="min-h-screen bg-gray-50 py-8 px-4 md:px-10 w-full">
+        <div class="w-full max-w-none">
+
+            {{-- 1. ヘッダー --}}
+            <div class="flex justify-between items-end mb-10 w-full px-2">
                 <div>
-                    <h1 class="text-4xl font-black text-gray-900 tracking-tight">My Tasks</h1>
-                    <p class="text-gray-500 mt-2 font-medium">今日は何を終わらせますか？</p>
+                    <h1 class="text-5xl font-black text-gray-900 tracking-tighter text-shadow-sm">My Tasks</h1>
+                    <p class="text-gray-500 mt-2 font-medium">
+                        @if(auth()->user()->google_access_token)
+                            <span class="text-green-600 font-bold">● Google Calendar Sync Active</span>
+                        @else
+                            <a href="{{ route('google.login') }}"
+                                class="text-blue-600 hover:underline font-bold">Google連携して予定を表示</a>
+                        @endif
+                    </p>
                 </div>
                 <a href="{{ route('tasks.create') }}"
-                    class="inline-flex items-center px-5 py-2.5 bg-blue-600 border border-transparent rounded-xl font-bold text-white hover:bg-blue-700 focus:outline-none transition all duration-200 shadow-lg shadow-blue-200 active:transform active:scale-95">
-                    <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px; height: 20px; margin-right: 4px;" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    新規タスク
+                    class="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-xl hover:bg-blue-700 transition-all active:scale-95 text-lg">
+                    ＋ 新規タスク
                 </a>
             </div>
-@if(!auth()->user()->google_access_token)
-    <a href="{{ route('google.login') }}"
-        class="text-xs bg-white border border-gray-300 px-3 py-1 rounded-lg hover:bg-gray-50 transition-colors font-bold text-gray-600">
-        Googleカレンダーと連携
-    </a>
-@else
-    <span class="text-xs text-green-600 font-bold">● Googleカレンダー連携済み</span>
-@endif
-            {{-- カードグリッド --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                @forelse($tasks as $task)
-                                            <div class="flex flex-col bg-white rounded-xl overflow-hidden transition-all duration-300"
-                                                style="border: 1px solid #e5e7eb; min-height: 220px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);"
-                                                onmouseover="this.style.boxShadow='0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'; this.style.transform='translateY(-4px)'; this.style.borderColor='#3b82f6';"
-                                                onmouseout="this.style.boxShadow='0 1px 2px 0 rgba(0, 0, 0, 0.05)'; this.style.transform='translateY(0)'; this.style.borderColor='#e5e7eb';">
 
-                                                {{-- カードメイン --}}
-                                                <div class="p-6 flex-grow">
-                                                    <div class="flex items-start gap-4">
-                                                        {{-- チェックボックス --}}
-                                                        <div class="flex items-center" style="height: 28px;">
-                                                            <form action="{{ route('tasks.toggle', $task) }}" method="POST" class="flex">
-                                                                @csrf
-                                                                @method('PATCH')
-                                                                <input type="checkbox" onChange="this.form.submit()" {{ $task->is_completed ? 'checked' : '' }}
-                                                                    style="width: 20px; height: 20px; cursor: pointer;"
-                                                                    class="text-blue-600 rounded-md border-gray-300 focus:ring-blue-500 transition-all">
-                                                            </form>
-                                                        </div>
+            {{-- 2. メインレイアウト --}}
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-start">
 
-                                                        {{-- タイトル --}}
-                                                        <div class="flex-1">
-                                                            <h2 class="text-xl font-bold" style="line-height: 28px;">
-                                                                <a href="{{ route('tasks.show', $task) }}"
-                                                                    style="{{ $task->is_completed ? 'text-decoration: line-through; color: #9ca3af;' : '' }}"
-                                                                    class="{{ $task->is_completed ? '' : 'text-gray-800' }} group-hover:text-blue-600 break-all transition-colors">
-                                                                    {{ $task->title }}
-                                                                </a>
-                                                            </h2>
-                                                        </div>
-                                                    </div>
-                        {{-- ここから：説明文の追加 --}}
-                        @if($task->description)
-                            <p class="text-sm text-gray-500 mt-2 line-clamp-2"
-                                style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                {{ $task->description }}
-                            </p>
-                        @endif
-                                                    {{-- カテゴリー & 期限 --}}
-                                                    <div style="margin-left: 36px;" class="mt-4 space-y-3">
-                                                        <div>
-                                                            <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200">
-                                                                {{ $task->category->name ?? '未分類' }}
-                                                            </span>
-                                                        </div>
+                {{-- 左側：タスク一覧 (9/12) --}}
+                <div class="lg:col-span-8 xl:col-span-9">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6">
+                        @forelse($tasks as $task)
+                            <div
+                                class="flex flex-col bg-white rounded-[2rem] border border-gray-200 shadow-sm hover:shadow-2xl transition-all duration-300 group overflow-hidden">
 
-                                                        @if($task->due_date)
-                                                            <div class="flex items-center text-sm font-medium">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px; margin-right: 8px;"
-                                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                                    class="{{ $task->due_date->isPast() && !$task->is_completed ? 'text-red-500' : 'text-gray-400' }}">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                </svg>
-                                                                <span class="{{ $task->due_date->isPast() && !$task->is_completed ? 'text-red-600' : 'text-gray-500' }}">
-                                                                    {{ $task->due_date->format('Y/m/d') }}
-                                                                </span>
-                                                            </div>
-                                                        @endif
-                                                    </div>
-                                                </div>
-
-                                                {{-- カードフッター --}}
-                    <div class="px-5 py-3 bg-gray-50 mt-auto"
-                        style="border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
-                                                    {{-- 優先度バッジ --}}
-                                                    <div class="flex items-center gap-2">
-                                                        @if($task->priority === 3)
-                                                            <span style="background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; padding: 3px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">高</span>
-                                                        @elseif($task->priority === 2)
-                                                            <span style="background-color: #fef9c3; color: #854d0e; border: 1px solid #fef08a; padding: 3px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">中</span>
-                                                        @else
-                                                            <span style="background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; padding: 3px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">低</span>
-                                                        @endif
-                                                    </div>
-
-                                                    <a href="{{ route('tasks.edit', $task) }}"
-                                                        class="text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors uppercase tracking-widest">
-                                                        Edit →
-                                                    </a>
-
-                                                    {{-- 削除ボタン（フォーム形式） --}}
-                                                    <form action="{{ route('tasks.destroy', $task) }}" method="POST" onsubmit="return confirm('本当に削除しますか？');"
-                                                        class="inline">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="text-xs font-bold text-gray-400 hover:text-red-600 transition-colors">
-                                                            削除
-                                                        </button>
-                                                    </form>
-                                                </div>
+                                {{-- メインコンテンツ --}}
+                                <div class="p-7 flex-grow">
+                                    <div class="flex items-start gap-4">
+                                        <form action="{{ route('tasks.toggle', $task) }}" method="POST">
+                                            @csrf @method('PATCH')
+                                            <input type="checkbox" onChange="this.form.submit()" {{ $task->is_completed ? 'checked' : '' }}
+                                                class="w-6 h-6 text-blue-600 rounded-lg border-gray-300 cursor-pointer focus:ring-blue-500">
+                                        </form>
+                                        <div class="flex-1 min-w-0">
+                                            <h2
+                                                class="text-xl font-bold leading-tight break-words {{ $task->is_completed ? 'line-through text-gray-400' : 'text-gray-800' }}">
+                                                <a href="{{ route('tasks.show', $task) }}"
+                                                    class="hover:text-blue-600">{{ $task->title }}</a>
+                                            </h2>
+                                            <div class="mt-4 flex flex-wrap gap-2">
+                                                <span
+                                                    class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full border border-gray-200">
+                                                    {{ $task->category->name ?? '未分類' }}
+                                                </span>
+                                                @if($task->priority_label)
+                                                    <span
+                                                        class="px-3 py-1 bg-orange-50 text-orange-600 text-xs font-bold rounded-full border border-orange-100">
+                                                        {{ $task->priority_label }}
+                                                    </span>
+                                                @endif
                                             </div>
-                @empty
-                    <div class="col-span-full py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center">
-                        <p class="text-gray-400 font-bold text-lg">タスクがありません</p>
-                        <a href="{{ route('tasks.create') }}" class="mt-4 text-blue-500 font-bold hover:underline">新しいタスクを追加する</a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- 下部：ボタンエリア (ここで削除・編集ボタンを確実に表示) --}}
+                                <div
+                                    class="px-7 py-5 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-300">Quick
+                                        Actions</span>
+                                    <div class="flex items-center gap-5">
+                                        <a href="{{ route('tasks.edit', $task) }}"
+                                            class="text-sm font-bold text-gray-400 hover:text-blue-600 transition-colors">
+                                            編集
+                                        </a>
+                                        <form action="{{ route('tasks.destroy', $task) }}" method="POST"
+                                            onsubmit="return confirm('削除してよろしいですか？');" class="inline">
+                                            @csrf @method('DELETE')
+                                            <button type="submit"
+                                                class="text-sm font-bold text-gray-400 hover:text-red-600 transition-colors">
+                                                削除
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <div
+                                class="col-span-full py-40 bg-white rounded-[3rem] border-4 border-dashed border-gray-100 text-center">
+                                <p class="text-3xl font-black text-gray-200 uppercase tracking-widest">No Active Tasks</p>
+                            </div>
+                        @endforelse
                     </div>
                 </div>
-@empty
-    <p class="text-center text-gray-500 py-8">タスクがありません。</p>
-@endforelse
+
+                {{-- 右側：カレンダー (3/12) --}}
+                <div class="lg:col-span-4 xl:col-span-3 sticky top-8">
+                    <div class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-200">
+                        <div class="flex items-center justify-between mb-8">
+                            <h2 class="text-2xl font-black text-gray-900 tracking-tighter">Schedule</h2>
+                        </div>
+                        <div id="calendar-wrapper" class="w-full">
+                            <div id="calendar"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     </div>
+
+    <style>
+        /* 物理的に幅制限を解除 */
+        html,
+        body,
+        main,
+        #full-width-container {
+            width: 100% !important;
+            max-width: none !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+
+        /* カレンダーの微調整 */
+        #calendar {
+            font-size: 0.85rem;
+            min-height: 500px;
+        }
+
+        .fc .fc-toolbar-title {
+            font-size: 1rem !important;
+            font-weight: 900;
+        }
+
+        .fc .fc-button {
+            border-radius: 12px !important;
+            text-transform: capitalize;
+        }
+
+        /* ウルトラワイド対応 */
+        @media (min-width: 2000px) {
+            .3xl\:grid-cols-5 {
+                grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+            }
+        }
+    </style>
+
+    @push('scripts')
+        <script>
+            window.onload = function () {
+                const calendarEl = document.getElementById('calendar');
+                if (calendarEl && typeof window.initCalendar === 'function') {
+                    window.initCalendar(calendarEl, @json($googleEvents ?? []));
+                }
+            };
+        </script>
+    @endpush
 </x-app-layout>

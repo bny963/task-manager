@@ -5,6 +5,7 @@ namespace App\Services;
 use Google\Client;
 use Google\Service\Calendar;
 use Google\Service\Calendar\Event;
+use Carbon\Carbon;
 
 class GoogleCalendarService
 {
@@ -138,5 +139,45 @@ class GoogleCalendarService
             // ここで止まれば、Google側のエラー内容（権限不足、IDが見つからない等）が表示される
             dd('Google Delete API Error: ' . $e->getMessage());
         }
+    }
+    public function getEventsForFullCalendar()
+    {
+        $user = auth()->user();
+        if (!$user->google_access_token) return [];
+
+        $client = new Client();
+        $client->setAccessToken($user->google_access_token);
+
+        // トークン期限切れ時のリフレッシュ処理は省略（必要に応じて実装）
+
+        $service = new Calendar($client);
+        
+        // 取得範囲（例：前後1ヶ月分）
+        $optParams = [
+            'orderBy' => 'startTime',
+            'singleEvents' => true,
+            'timeMin' => Carbon::now()->startOfMonth()->subMonth()->toRfc3339String(),
+            'timeMax' => Carbon::now()->endOfMonth()->addMonth()->toRfc3339String(),
+        ];
+
+        $results = $service->events->listEvents('primary', $optParams);
+        $events = [];
+
+        foreach ($results->getItems() as $event) {
+            $events[] = [
+                'title' => $event->getSummary() ?? '(タイトルなし)',
+                'start' => $event->start->dateTime ?? $event->start->date,
+                'end'   => $event->end->dateTime ?? $event->end->date,
+                // FullCalendar用の追加プロパティ
+                'extendedProps' => [
+                    'description' => $event->getDescription(),
+                    'location'    => $event->getLocation(),
+                ],
+                'backgroundColor' => '#3b82f6', // Tailwindのblue-600相当
+                'borderColor'     => '#2563eb',
+            ];
+        }
+
+        return $events;
     }
 }
