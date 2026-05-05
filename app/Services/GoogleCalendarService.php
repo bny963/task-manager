@@ -51,15 +51,39 @@ class GoogleCalendarService
     private function getValidClient()
     {
         $user = auth()->user();
+
+        // そもそもトークンを持っていない場合のガード
+        if (!$user->google_access_token) {
+            throw new \Exception('Google Calendar not connected.');
+        }
+
         $this->client->setAccessToken($user->google_access_token);
 
         if ($this->client->isAccessTokenExpired()) {
+            // リフレッシュトークンがない場合
+            if (!$user->google_refresh_token) {
+                throw new \Exception('Refresh token is missing.');
+            }
+
             $newToken = $this->client->fetchAccessTokenWithRefreshToken($user->google_refresh_token);
-            $user->update([
-                'google_access_token' => $newToken['access_token'],
-                'google_token_expires_at' => now()->addSeconds($newToken['expires_in']),
-            ]);
-            $this->client->setAccessToken($newToken);
+
+            // ここで 'access_token' が存在するかチェックする
+            if (isset($newToken['access_token'])) {
+                $user->update([
+                    'google_access_token' => $newToken['access_token'],
+                    'google_token_expires_at' => now()->addSeconds($newToken['expires_in']),
+                ]);
+                $this->client->setAccessToken($newToken);
+            } else {
+                // トークン更新に失敗した場合（リフレッシュトークンが無効など）
+                // ユーザーのトークン情報を一度クリアして再連携を促すのが安全です
+                $user->update([
+                    'google_access_token' => null,
+                    'google_refresh_token' => null,
+                ]);
+                \Log::error('Google Token Refresh Failed for User: ' . $user->id);
+                throw new \Exception('Google Calendar re-authentication required.');
+            }
         }
 
         return new Calendar($this->client);
@@ -143,15 +167,14 @@ class GoogleCalendarService
     public function getEventsForFullCalendar()
     {
         $user = auth()->user();
-        if (!$user->google_access_token) return [];
+        if (!$user || !$user->google_access_token)
+            return [];
 
-        $client = new Client();
-        $client->setAccessToken($user->google_access_token);
+        // 【修正ポイント】
+        // 自分で定義した共通メソッド getValidClient() を呼び出すだけでOKです。
+        // これにより、クライアントの初期化 + 期限切れ時のリフレッシュ + DB保存 が自動で行われます。
+        $service = $this->getValidClient();
 
-        // トークン期限切れ時のリフレッシュ処理は省略（必要に応じて実装）
-
-        $service = new Calendar($client);
-        
         // 取得範囲（例：前後1ヶ月分）
         $optParams = [
             'orderBy' => 'startTime',
@@ -160,6 +183,7 @@ class GoogleCalendarService
             'timeMax' => Carbon::now()->endOfMonth()->addMonth()->toRfc3339String(),
         ];
 
+        // $service を使ってイベントリストを取得
         $results = $service->events->listEvents('primary', $optParams);
         $events = [];
 
@@ -167,14 +191,13 @@ class GoogleCalendarService
             $events[] = [
                 'title' => $event->getSummary() ?? '(タイトルなし)',
                 'start' => $event->start->dateTime ?? $event->start->date,
-                'end'   => $event->end->dateTime ?? $event->end->date,
-                // FullCalendar用の追加プロパティ
+                'end' => $event->end->dateTime ?? $event->end->date,
                 'extendedProps' => [
                     'description' => $event->getDescription(),
-                    'location'    => $event->getLocation(),
+                    'location' => $event->getLocation(),
                 ],
-                'backgroundColor' => '#3b82f6', // Tailwindのblue-600相当
-                'borderColor'     => '#2563eb',
+                'backgroundColor' => '#3b82f6',
+                'borderColor' => '#2563eb',
             ];
         }
 
