@@ -15,7 +15,7 @@ class TaskController extends Controller
      */
     public function index(GoogleCalendarService $calendarService)
     {
-        // 1. 既存のタスク取得ロジック（並び順維持）
+        // 1. 既存のタスク取得ロジック
         $tasks = Task::where('user_id', auth()->id())
             ->orderByRaw('is_completed ASC')     // 未完了を上
             ->orderByRaw('due_date IS NULL ASC') // 期限ありを上
@@ -23,9 +23,26 @@ class TaskController extends Controller
             ->orderBy('priority', 'desc')        // 優先度高い順
             ->get();
 
-        // 2. Googleカレンダーから整形済みデータを取得
-        // ※Service側で getEventsForFullCalendar() メソッドを作成している前提
-        $googleEvents = $calendarService->getEventsForFullCalendar();
+        // 2. Googleカレンダーデータの取得（安全策を追加）
+        $googleEvents = [];
+
+        // ユーザーがトークンを持っている場合のみ実行
+        if (auth()->user()->google_access_token) {
+            try {
+                $googleEvents = $calendarService->getEventsForFullCalendar();
+            } catch (\Exception $e) {
+                // エラーが起きたらログに記録し、空配列のまま続行
+                \Log::error('Google Calendar Error: ' . $e->getMessage());
+
+                // 任意：トークンが無効ならクリアするなどの処理
+                if (str_contains($e->getMessage(), 'invalid_grant') || str_contains($e->getMessage(), 're-authentication')) {
+                    auth()->user()->update([
+                        'google_access_token' => null,
+                        'google_refresh_token' => null,
+                    ]);
+                }
+            }
+        }
 
         // 3. 両方のデータをViewへ渡す
         return view('tasks.index', compact('tasks', 'googleEvents'));
