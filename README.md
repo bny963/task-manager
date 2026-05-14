@@ -13,6 +13,24 @@
 - `./vendor/bin/sail npm install`
 - `./vendor/bin/sail npm run dev`
 
+##　開発環境（アクセスURL）
+お問い合わせ画面: http://localhost/
+
+ユーザー登録: http://localhost/register
+
+phpMyAdmin: http://localhost:8080/
+
+## 使用技術(実行環境)
+Language: PHP 8.x
+
+Framework: Laravel (Sail)
+
+Infrastructure: Docker / Docker Compose
+
+Database: MySQL 8.0
+
+Frontend Tooling: Node.js / npm (Vite)
+
 ---
 
 ## データベース設計 (ER図)
