@@ -1,4 +1,5 @@
-# 環境構築
+# タスク管理アプリ
+#　環境構築
 
 ## Dockerビルド
 - `git clone https://github.com/bny963/task-manager.git`
@@ -15,16 +16,31 @@
 
 ---
 
-## 開発環境
-- お問い合わせ画面：[http://localhost/](http://localhost/)
-- ユーザー登録：[http://localhost/register](http://localhost/register)
-- phpMyAdmin：[http://localhost:8080/](http://localhost:8080/)
+## データベース設計 (ER図)
 
----
+```mermaid
+erDiagram
+    users ||--o{ tasks : "作成する"
+    statuses ||--o{ tasks : "状態を定義する"
 
-## 使用技術(実行環境)
-- PHP 8.x
-- Laravel (Sail)
-- Docker / Docker Compose
-- MySQL 8.0
-- Node.js / npm (Vite)
+    users {
+        bigint id PK "プライマリキー"
+        string name "ユーザー名"
+        string email "メールアドレス"
+        string password "パスワード"
+        timestamp created_at
+    }
+
+    tasks {
+        bigint id PK "プライマリキー"
+        bigint user_id FK "作成者ID"
+        bigint status_id FK "ステータスID"
+        string title "タスク名"
+        text description "詳細"
+        datetime due_date "期限"
+    }
+
+    statuses {
+        bigint id PK "プライマリキー"
+        string name "Todo / Doing / Done"
+    }
