@@ -14,7 +14,7 @@
 - `./vendor/bin/sail npm run dev`
 
 
-##　開発環境（アクセスURL）
+## 開発環境（アクセスURL）
 お問い合わせ画面: http://localhost/
 
 ユーザー登録: http://localhost/register
