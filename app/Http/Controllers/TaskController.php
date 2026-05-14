@@ -7,45 +7,66 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use App\Models\Task;
 use App\Services\GoogleCalendarService;
+use App\Models\User;
 
 class TaskController extends Controller
 {
     /**
      * タスク一覧を表示
      */
-    public function index(GoogleCalendarService $calendarService)
+
+    public function index(Request $request, GoogleCalendarService $calendarService)
     {
+        // 0. 絞り込みの選択肢として全カテゴリーと全ユーザーを取得
+        $categories = \App\Models\Category::all();
+        $users = \App\Models\User::all(); // ★追加：Viewのボタン表示用
+
         // 1. 既存のタスク取得ロジック
-        $tasks = Task::where('user_id', auth()->id())
-            ->orderByRaw('is_completed ASC')     // 未完了を上
-            ->orderByRaw('due_date IS NULL ASC') // 期限ありを上
-            ->orderBy('due_date', 'asc')         // 期限が近い順
-            ->orderBy('priority', 'desc')        // 優先度高い順
+        $query = Task::with(['user', 'category']);
+
+        // --- 絞り込みの適用 ---
+        // カテゴリーIDで絞り込み
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        // ユーザーIDで絞り込み ★追加
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        $tasks = $query->orderByRaw('is_completed ASC')
+            ->orderByRaw('due_date IS NULL ASC')
+            ->orderBy('due_date', 'asc')
+            ->orderBy('priority', 'desc')
             ->get();
 
-        // 2. Googleカレンダーデータの取得（安全策を追加）
+        // 2. Googleカレンダーデータの取得
         $googleEvents = [];
 
-        // ユーザーがトークンを持っている場合のみ実行
-        if (auth()->user()->google_access_token) {
-            try {
-                $googleEvents = $calendarService->getEventsForFullCalendar();
-            } catch (\Exception $e) {
-                // エラーが起きたらログに記録し、空配列のまま続行
-                \Log::error('Google Calendar Error: ' . $e->getMessage());
+        // 判定条件：カテゴリーが未選択 or 仕事(ID:1) 
+        // かつ、ユーザーが未選択（全員） or ログインユーザー自身を選択している時
+        $isJobCategory = !$request->filled('category_id') || $request->category_id == 1;
+        $isSelfOrAll = !$request->filled('user_id') || $request->user_id == auth()->id();
 
-                // 任意：トークンが無効ならクリアするなどの処理
-                if (str_contains($e->getMessage(), 'invalid_grant') || str_contains($e->getMessage(), 're-authentication')) {
-                    auth()->user()->update([
-                        'google_access_token' => null,
-                        'google_refresh_token' => null,
-                    ]);
+        if ($isJobCategory && $isSelfOrAll) {
+            if (auth()->user()->google_access_token) {
+                try {
+                    $googleEvents = $calendarService->getEventsForFullCalendar();
+                } catch (\Exception $e) {
+                    \Log::error('Google Calendar Error: ' . $e->getMessage());
+                    if (str_contains($e->getMessage(), 'invalid_grant') || str_contains($e->getMessage(), 're-authentication')) {
+                        auth()->user()->update([
+                            'google_access_token' => null,
+                            'google_refresh_token' => null,
+                        ]);
+                    }
                 }
             }
         }
 
-        // 3. 両方のデータをViewへ渡す
-        return view('tasks.index', compact('tasks', 'googleEvents'));
+        // 3. 全てのデータをViewへ渡す（usersを追加）
+        return view('tasks.index', compact('tasks', 'googleEvents', 'categories', 'users'));
     }
 
     /**
@@ -54,8 +75,10 @@ class TaskController extends Controller
     public function create()
     {
         $categories = Category::orderBy('name')->get();
+        $categories = Category::all();
+        $users = User::all(); // ユーザー一覧を取得
 
-        return view('tasks.create', compact('categories'));
+        return view('tasks.create', compact('categories', 'users'));
     }
 
     /**
@@ -63,29 +86,35 @@ class TaskController extends Controller
      */
     public function store(Request $request, GoogleCalendarService $calendarService)
     {
-        // 1. バリデーションを実行（ここが抜けていました）
+        // 1. バリデーションを実行
         $validated = $request->validate([
             'title' => 'required|max:255',
             'description' => 'nullable',
-            'due_date' => 'nullable|date',
+            'start_date' => 'nullable|date',
+            'due_date' => 'nullable|date|after_or_equal:start_date',
             'category_id' => 'required|exists:categories,id',
             'priority' => 'required|integer|min:1|max:3',
         ]);
 
-        // 2. $validated を使って作成
+        // 2. 作成
         $task = auth()->user()->tasks()->create($validated);
 
-        // 3. デバッグ用のログ出し
-        $hasToken = !empty(auth()->user()->google_access_token);
-        $hasDueDate = !empty($task->due_date);
-
-        if ($hasToken && $hasDueDate) {
-            $calendarService->createEvent($task);
-        } else {
-            $reason = "トークン: " . ($hasToken ? 'OK' : 'なし') . " / 期限: " . ($hasDueDate ? 'OK' : 'なし');
-            return redirect()->route('tasks.index')->with('error', '同期スキップされました。理由: ' . $reason);
+        // 3. Googleカレンダー同期ロジック
+        if (auth()->user()->google_access_token) {
+            if ($task->due_date) {
+                try {
+                    $calendarService->createEvent($task);
+                    return redirect()->route('tasks.index')->with('success', 'タスクを作成し、Googleカレンダーに同期しました！');
+                } catch (\Exception $e) {
+                    \Log::error('Google Calendar Sync Failed: ' . $e->getMessage());
+                    return redirect()->route('tasks.index')->with('warning', 'タスクは作成されましたが、カレンダー同期に失敗しました。');
+                }
+            }
+            // 期限がない場合は同期できないので、普通の成功メッセージ
+            return redirect()->route('tasks.index')->with('success', 'タスクを作成しました（期限未設定のため同期なし）。');
         }
 
+        // Google連携していないユーザーにはシンプルな成功メッセージ
         return redirect()->route('tasks.index')->with('success', 'タスクを作成しました！');
     }
     /**
@@ -111,7 +140,11 @@ class TaskController extends Controller
 
         $categories = Category::orderBy('name')->get();
 
-        return view('tasks.edit', compact('task', 'categories'));
+        // ★ ここを追加：全ユーザーを取得
+        $users = \App\Models\User::orderBy('name')->get();
+
+        // ★ compact に 'users' を追加
+        return view('tasks.edit', compact('task', 'categories', 'users'));
     }
 
     /**
@@ -171,5 +204,25 @@ class TaskController extends Controller
         ]);
 
         return back()->with('success', 'タスクのステータスを更新しました。');
+    }
+    public function duplicate(Task $task)
+    {
+        // 1. 既存のタスクをコピー（メモリ上）
+        $newTask = $task->replicate();
+
+        // 2. タイトルに「(コピー)」を付与して分かりやすくする
+        $newTask->title = $task->title . ' (コピー)';
+
+        // 3. 未完了状態で保存
+        $newTask->is_completed = false;
+
+        // 4. Googleカレンダー連携IDなどはリセット（新しい予定として扱うため）
+        if (isset($newTask->google_calendar_event_id)) {
+            $newTask->google_calendar_event_id = null;
+        }
+
+        $newTask->save();
+
+        return redirect()->route('tasks.index')->with('success', 'タスクを複製しました！');
     }
 }

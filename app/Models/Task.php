@@ -22,6 +22,7 @@ class Task extends Model
         'description',
         'priority',
         'is_completed',
+        'start_date',
         'due_date',
         'google_calendar_event_id',
     ];
@@ -54,6 +55,13 @@ class Task extends Model
         };
     }
     protected $casts = [
+        'start_date' => 'date', // キャストを追加
         'due_date' => 'date',
+        'is_completed' => 'boolean',
     ];
+    public function assignee()
+    {
+        // assigned_to カラムを使って User モデルと紐付ける
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
 }
