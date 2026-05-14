@@ -1,5 +1,4 @@
-# タスク管理アプリ
-#　環境構築
+# タスク管理アプリ　環境構築
 
 ## Dockerビルド
 - `git clone https://github.com/bny963/task-manager.git`
