@@ -36,29 +36,8 @@ Frontend Tooling: Node.js / npm (Vite)
 
 ## データベース設計 (ER図)
 
-```mermaid
-erDiagram
-    users ||--o{ tasks : "作成する"
-    statuses ||--o{ tasks : "状態を定義する"
+![ER図](https://github.com/user-attachments/assets/c97cc032-b428-41e3-b2ba-6129fa263a69)
 
-    users {
-        id PK
-        name
-        email
-        password
-        created_at
-    }
-
-    tasks {
-        id PK
-        user_id FK
-        status_id FK
-        title
-        description
-        due_date
-    }
-
-    statuses {
-        id PK
-        name
-    }
+### リレーションの補足
+* **users と tasks**: 1人のユーザーが「作成者 (`user_id`)」および「担当者 (`assigned_to`)」として、複数のタスクに紐付きます。※担当者は未割り当て（nullable）を許容する設計です。
+* **categories と tasks**: 1つのカテゴリに対して、複数のタスクが分類されます。
