@@ -36,6 +36,7 @@ Frontend Tooling: Node.js / npm (Vite)
 
 ## データベース設計 (ER図)
 
+```mermaid
 erDiagram
     users ||--o{ tasks : "作成する"
     statuses ||--o{ tasks : "状態を定義する"
@@ -60,9 +61,4 @@ erDiagram
     statuses {
         id PK
         name
-    }
-
-    statuses {
-        bigint id PK "プライマリキー"
-        string name "Todo / Doing / Done"
     }
