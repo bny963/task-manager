@@ -36,26 +36,30 @@ Frontend Tooling: Node.js / npm (Vite)
 
 ## データベース設計 (ER図)
 
-```mermaid
 erDiagram
     users ||--o{ tasks : "作成する"
     statuses ||--o{ tasks : "状態を定義する"
 
     users {
-        bigint id PK "プライマリキー"
-        string name "ユーザー名"
-        string email "メールアドレス"
-        string password "パスワード"
-        timestamp created_at
+        id PK
+        name
+        email
+        password
+        created_at
     }
 
     tasks {
-        bigint id PK "プライマリキー"
-        bigint user_id FK "作成者ID"
-        bigint status_id FK "ステータスID"
-        string title "タスク名"
-        text description "詳細"
-        datetime due_date "期限"
+        id PK
+        user_id FK
+        status_id FK
+        title
+        description
+        due_date
+    }
+
+    statuses {
+        id PK
+        name
     }
 
     statuses {
